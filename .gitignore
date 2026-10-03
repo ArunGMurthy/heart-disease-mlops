@@ -4,9 +4,12 @@ __pycache__/
 mlruns/
 mlflow.db
 .venv/
+.venv_check/
 venv/
 data/raw/*.csv
-models/*.pkl
-reports/figures/*.png
 *.egg-info/
 .ipynb_checkpoints/
+
+# Trained model (models/model.pkl) and EDA/evaluation figures are
+# intentionally tracked below, NOT ignored, so the repo is
+# self-demonstrating without requiring a rerun of the pipeline.
