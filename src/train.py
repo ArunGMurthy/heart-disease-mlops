@@ -133,9 +133,10 @@ def main():
         pipeline, metrics, cv_score = train_and_log(
             name, cfg, X_train, X_test, y_train, y_test, preprocessor
         )
-        results[name] = metrics
-        if metrics["roc_auc"] > best_score:
-            best_score = metrics["roc_auc"]
+        results[name] = {**metrics, "cv_roc_auc": cv_score}
+        # Select on cross-validated score so the held-out test set stays unbiased.
+        if cv_score > best_score:
+            best_score = cv_score
             best_overall = pipeline
             best_name = name
 
@@ -152,7 +153,7 @@ def main():
     with open(MODEL_DIR / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
-    print(f"\nBest model: {best_name} (test ROC-AUC={best_score:.4f})")
+    print(f"\nBest model: {best_name} (CV ROC-AUC={best_score:.4f})")
     print(f"Saved pipeline to {model_path}")
 
 
