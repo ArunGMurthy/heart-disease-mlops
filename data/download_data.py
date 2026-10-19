@@ -62,8 +62,8 @@ if __name__ == "__main__":
             "If you have no internet access, manually download "
             "processed.cleveland.data from the UCI repository "
             "(https://archive.ics.uci.edu/dataset/45/heart+disease), "
-            "name it 'raw_cleveland.data' and place it in data/raw/, "
-            "then re-run this script with --from-local.",
+            "save it as data/raw/heart_disease.csv, "
+            "then re-run src/train.py directly.",
             file=sys.stderr,
         )
         sys.exit(1)

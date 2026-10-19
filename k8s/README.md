@@ -36,7 +36,7 @@ curl -X POST <SERVICE_URL>/predict \
 ```
 
 Take screenshots of `kubectl get pods`, `kubectl get svc`, and the curl
-response for the assignment report, and save them to `screenshots/`.
+response, and save them to `screenshots/`.
 
 ## Scaling
 ```bash

@@ -2,8 +2,7 @@
 Data cleaning and preprocessing for the Heart Disease UCI dataset.
 
 Builds a scikit-learn ColumnTransformer pipeline so the exact same
-transformations used in training are reusable at inference time
-(guarantees reproducibility, per assignment task 4).
+transformations used in training are reusable at inference time.
 """
 from __future__ import annotations
 

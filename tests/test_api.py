@@ -73,7 +73,8 @@ def ensure_model_exists():
 def client():
     from api.main import app
 
-    return TestClient(app)
+    with TestClient(app) as c:
+        yield c
 
 
 def test_health_endpoint(client):

@@ -43,7 +43,7 @@ def get_model():
     if _model is None:
         if not MODEL_PATH.exists():
             raise RuntimeError(
-                f"Model file not found at {MODEL_PATH}. Run `python src/train.py` first."
+                f"Model file not found at {MODEL_PATH}. Run `python -m src.train` first."
             )
         with open(MODEL_PATH, "rb") as f:
             _model = pickle.load(f)
@@ -90,7 +90,7 @@ async def log_requests(request: Request, call_next):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_version": _model_version}
+    return {"status": "ok" if _model is not None else "degraded", "model_version": _model_version}
 
 
 @app.post("/predict", response_model=PredictionResponse)

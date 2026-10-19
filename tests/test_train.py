@@ -48,7 +48,7 @@ def test_pipeline_trains_and_evaluates(toy_classification_data):
     pipeline.fit(X_train, y_train)
     metrics = evaluate(pipeline, X_test, y_test)
 
-    for key in ("accuracy", "precision", "recall", "roc_auc"):
+    for key in ("accuracy", "precision", "recall", "f1", "roc_auc"):
         assert key in metrics
         assert 0.0 <= metrics[key] <= 1.0
 

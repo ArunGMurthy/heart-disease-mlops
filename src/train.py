@@ -27,6 +27,7 @@ from sklearn.linear_model import LogisticRegression  # noqa: E402
 from sklearn.metrics import (  # noqa: E402
     RocCurveDisplay,
     accuracy_score,
+    f1_score,
     precision_score,
     recall_score,
     roc_auc_score,
@@ -72,6 +73,7 @@ def evaluate(model, X_test, y_test) -> dict:
         "accuracy": accuracy_score(y_test, preds),
         "precision": precision_score(y_test, preds, zero_division=0),
         "recall": recall_score(y_test, preds, zero_division=0),
+        "f1": f1_score(y_test, preds, zero_division=0),
         "roc_auc": roc_auc_score(y_test, proba),
     }
 

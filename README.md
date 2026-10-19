@@ -1,6 +1,5 @@
 # Heart Disease Risk Prediction — End-to-End MLOps Pipeline
 
-AIMLCZG523 MLOps — Assignment 1: Experimental Learning Assignment.
 A reproducible, CI/CD-automated, containerized, and monitored ML pipeline
 that predicts heart disease risk from patient health data (UCI Heart
 Disease dataset) and serves predictions via a FastAPI `/predict` endpoint.
@@ -27,7 +26,7 @@ Disease dataset) and serves predictions via a FastAPI `/predict` endpoint.
                         │  logs params/metrics/artifacts
                         ▼
                  ┌─────────────┐
-                 │   MLflow    │  mlruns/
+                 │   MLflow    │  mlflow.db + mlruns/
                  └──────┬──────┘
                         ▼
               models/model.pkl (best pipeline)
@@ -77,15 +76,24 @@ build/smoke-test Docker image, on every push/PR.
 ├── screenshots/                # deployment/CI screenshots for report
 ├── Dockerfile
 ├── docker-compose.monitoring.yml
-└── requirements.txt
+├── requirements.txt
+├── sample_request.json         # example /predict payload
+└── RUNBOOK.md                  # step-by-step execution guide
 ```
 
 ## Setup / Install Instructions
 
+Requires **Python 3.13** (the pinned `numpy==2.5.3` needs Python ≥ 3.12;
+the Dockerfile and CI also use 3.13).
+
+All commands are run from the project root. Scripts inside `src/` must
+be run as modules (`python -m src.train`, not `python src/train.py`),
+otherwise the `src` package import fails.
+
 ### 1. Clone and create environment
 ```bash
 git clone <repo-url>
-cd assignment-1
+cd heart-disease-mlops
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -98,21 +106,22 @@ python data/download_data.py
 
 ### 3. Run EDA
 ```bash
-python src/eda.py
+python -m src.eda
 # figures saved to reports/figures/
 ```
 
 ### 4. Preprocess (optional standalone step)
 ```bash
-python src/data_preprocessing.py
+python -m src.data_preprocessing
+# writes data/processed/heart_disease_clean.csv
 ```
 
 ### 5. Train models (logs to MLflow, saves best pipeline)
 ```bash
-python src/train.py
+python -m src.train
 
 # View experiment tracking UI:
-mlflow ui --backend-store-uri mlruns/
+mlflow ui --backend-store-uri sqlite:///mlflow.db
 # open http://localhost:5000
 ```
 
@@ -127,26 +136,35 @@ uvicorn api.main:app --reload
 # docs: http://localhost:8000/docs
 ```
 
-Example request:
+Example request (payload in `sample_request.json`; works in bash,
+PowerShell and Command Prompt — on Windows use `curl.exe`, since
+`curl` in PowerShell is an alias for `Invoke-WebRequest`):
 ```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"age":63,"sex":1,"cp":3,"trestbps":145,"chol":233,"fbs":1,"restecg":0,"thalach":150,"exang":0,"oldpeak":2.3,"slope":1,"ca":0,"thal":3}'
+curl.exe -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d @sample_request.json
+# -> {"prediction":0,"label":"No Disease","confidence":0.8188,"model_version":"logistic_regression"}
 ```
 
 ### 8. Build & run with Docker
 ```bash
 docker build -t heart-disease-api:latest .
-docker run -p 8000:8000 heart-disease-api:latest
-curl http://localhost:8000/health
+docker run -d -p 8000:8000 --name heart-disease-api heart-disease-api:latest
+curl.exe http://localhost:8000/health
+docker rm -f heart-disease-api   # stop before starting the monitoring stack (same port)
 ```
 
 ### 9. Deploy to Kubernetes
-See [k8s/README.md](k8s/README.md).
+See [k8s/README.md](k8s/README.md). With Docker Desktop's built-in
+Kubernetes, the LoadBalancer service is exposed at `http://localhost/`
+(port 80):
+```bash
+kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml
+kubectl get pods
+curl.exe -X POST http://localhost/predict -H "Content-Type: application/json" -d @sample_request.json
+```
 
 ### 10. Local monitoring stack (Prometheus + Grafana)
 ```bash
-docker compose -f docker-compose.monitoring.yml up --build
+docker compose -f docker-compose.monitoring.yml up --build -d
 # Prometheus: http://localhost:9090
 # Grafana:    http://localhost:3000 (admin/admin) — add Prometheus
 #             (http://prometheus:9090) as a data source and build a
@@ -165,12 +183,17 @@ disease. Downloaded automatically by `data/download_data.py`.
 
 Two classifiers are trained and tuned via `GridSearchCV` with 5-fold
 stratified cross-validation, optimizing ROC-AUC:
-- **Logistic Regression** (`C`, `penalty` tuned)
-- **Random Forest** (`n_estimators`, `max_depth` tuned)
+- **Logistic Regression** (`C` ∈ {0.01, 0.1, 1, 10} tuned)
+- **Random Forest** (`n_estimators` ∈ {100, 200}, `max_depth` ∈ {None, 5, 10} tuned)
 
 Metrics logged per run: accuracy, precision, recall, ROC-AUC, plus an
 ROC curve plot artifact. The best model (by test ROC-AUC) is saved to
 `models/model.pkl` and served by the API.
+
+| Model | Accuracy | Precision | Recall | ROC-AUC |
+|---|---|---|---|---|
+| **Logistic Regression** (selected) | 0.885 | 0.839 | 0.929 | 0.961 |
+| Random Forest | 0.869 | 0.833 | 0.893 | 0.947 |
 
 ## CI/CD Pipeline
 
@@ -191,14 +214,3 @@ ROC curve plot artifact. The best model (by test ROC-AUC) is saved to
 - `docker-compose.monitoring.yml` + `monitoring/prometheus.yml` spin up
   a local Prometheus + Grafana stack scraping the API.
 
-## Report
-
-The full written report (EDA & modelling choices, experiment tracking
-summary, architecture, CI/CD & deployment screenshots) is in
-[`reports/report.md`](reports/report.md) — fill in screenshots and
-results after running the pipeline end-to-end.
-
-## License / Academic Integrity
-
-Submitted for AIMLCZG523 (MLOps), BITS Pilani WILP. Implementation,
-architecture decisions, and experimentation are original work.
